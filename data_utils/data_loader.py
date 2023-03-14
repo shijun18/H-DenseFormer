@@ -17,9 +17,10 @@ class Trunc_and_Normalize(object):
     '''
     truncate gray scale and normalize to [0,1]
     '''
-    def __init__(self, scale):
+    def __init__(self, scale=None):
         self.scale = scale
-        assert len(self.scale) == 2, 'scale error'
+        if self.scale is not None:
+            assert len(self.scale) == 2, 'scale error'
 
     def __call__(self, sample):
         image = sample['image']

@@ -969,6 +969,6 @@ class PolyLR(torch.optim.lr_scheduler._LRScheduler):
         if (self.last_epoch > self.max_epochs):
             return [group['lr'] for group in self.optimizer.param_groups]
 
-        return [group['lr'] * (1 - (current_epoch - self.ck_epoch) /
-                (self.max_epochs - self.ck_epoch)) ** self.exponent for group in self.optimizer.param_groups]
+        return [base_lrs  * (1 - (current_epoch - self.ck_epoch) /
+                (self.max_epochs - self.ck_epoch)) ** self.exponent for base_lrs in self.base_lrs]
 

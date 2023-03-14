@@ -72,7 +72,7 @@ class RandomErase2D(object):
                 image[:,roi_window[1][1]:] = 0
         
 
-        new_sample = { 'image':image,'label': label}
+        new_sample = {'image':image,'label': label}
 
         return new_sample
 
@@ -168,7 +168,7 @@ class RandomRotate2D(object):
 
         label = label.rotate(rotate_degree, Image.NEAREST)
 
-        image = np.asarray(cts_out)
+        image = np.asarray(cts_out).squeeze()
         label = np.array(label).astype(np.float32)
         return {'image':image, 'label': label}
 
