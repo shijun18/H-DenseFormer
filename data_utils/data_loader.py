@@ -136,10 +136,10 @@ class To_Tensor(object):
         label = sample['label']
         
         mm = 1 if self.channel > 1 else 0
-        if not mm:
-            new_image = np.expand_dims(image, axis=0)
-        else:
+        if mm:
             new_image = image[:self.channel,...]
+        else:
+            new_image = np.expand_dims(image, axis=0)
         new_label = np.empty((self.num_class, ) + label.shape,
                              dtype=np.float32)
         for z in range(1, self.num_class):

@@ -1,12 +1,9 @@
 import os
-import nibabel as nib
 import SimpleITK as sitk
-import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import h5py
-import shutil
-from skimage.transform import resize
+
 
 def get_info(data):
     info = []

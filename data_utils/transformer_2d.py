@@ -1,6 +1,5 @@
 
 import numpy as np
-import torch
 from PIL import Image,ImageOps
 import random
 from skimage import exposure
