@@ -28,6 +28,8 @@ class RandomErase2D(object):
         image = sample['image']
         label = sample['label']
 
+        mm = 1 if len(image.shape) > 2 else 0
+
         h,w = label.shape
         roi_window = []
 
@@ -50,13 +52,25 @@ class RandomErase2D(object):
         direction = random.choice(['t','d','l','r','no_erase'])
         # print(direction)
         if direction == 't':
-            image[:,:roi_window[0][0],:] = 0
+            if mm:
+                image[:,:roi_window[0][0],:] = 0
+            else:
+                image[:roi_window[0][0],:] = 0
         elif direction == 'd':
-            image[:,roi_window[0][1]:,:] = 0
+            if mm:
+                image[:,roi_window[0][1]:,:] = 0
+            else:
+                image[roi_window[0][1]:,:] = 0
         elif direction == 'l':
-            image[:,:,:roi_window[1][0]] = 0
+            if mm:
+                image[:,:,:roi_window[1][0]] = 0
+            else:
+                image[:,:roi_window[1][0]] = 0
         elif direction == 'r':
-            image[:,:,roi_window[1][1]:] = 0
+            if mm:
+                image[:,:,roi_window[1][1]:] = 0
+            else:
+                image[:,roi_window[1][1]:] = 0
         
 
         new_sample = { 'image':image,'label': label}
@@ -81,23 +95,37 @@ class RandomFlip2D(object):
         image = sample['image']
         label = sample['label']
 
+        mm = 1 if len(image.shape) > 2 else 0
+
         if 'h' in self.mode and 'v' in self.mode:
             random_factor = np.random.uniform(0, 1)
             if random_factor < 0.3:
-                image = image[:,:,::-1]
+                if mm:
+                    image = image[:,:,::-1]
+                else:
+                    image = image[:,::-1]
                 label = label[:,::-1]
             elif random_factor < 0.6:
-                image = image[:,::-1,:]
+                if mm:
+                    image = image[:,::-1,:]
+                else:
+                    image = image[::-1,:]
                 label = label[::-1,:]
 
         elif 'h' in self.mode:
             if np.random.uniform(0, 1) > 0.5:
-                image = image[:,:,::-1]
+                if mm:
+                    image = image[:,:,::-1]
+                else:
+                    image = image[:,::-1]
                 label = label[:,::-1]
 
         elif 'v' in self.mode:
             if np.random.uniform(0, 1) > 0.5:
-                image = image[:,::-1,:]
+                if mm:
+                    image = image[:,::-1,:]
+                else:
+                    image = image[::-1,:]
                 label = label[::-1,:]
 
         image = image.copy()
@@ -121,9 +149,14 @@ class RandomRotate2D(object):
         image = sample['image']
         label = sample['label']
 
+        mm = 1 if len(image.shape) > 2 else 0
+
         cts = []
-        for i in range(image.shape[0]):
-            cts.append(Image.fromarray(image[i]))
+        if mm:
+            for i in range(image.shape[0]):
+                cts.append(Image.fromarray(image[i]))
+        else:
+            cts=[Image.fromarray(image)]
         label = Image.fromarray(np.uint8(label))
 
         rotate_degree = random.choice(self.degree)
@@ -160,7 +193,12 @@ class RandomZoom2D(object):
         image = sample['image']
         label = sample['label']
 
-        image = Image.fromarray(image.transpose((1,2,0)))
+        mm = 1 if len(image.shape) > 2 else 0
+
+        if mm:
+            image = Image.fromarray(image.transpose((1,2,0)))
+        else:
+            image = Image.fromarray(image)
         label = Image.fromarray(np.uint8(label))
 
         scale_factor = random.uniform(self.scale[0],self.scale[1])
@@ -209,9 +247,13 @@ class RandomZoom2D(object):
         tw, th = h, w
         image, label = image.resize((tw, th), Image.BILINEAR), label.resize((tw, th), Image.NEAREST)
 
-        image = np.array(image).transpose((2,0,1)).astype(np.float32)
+        if mm:
+            image = np.array(image).transpose((2,0,1)).astype(np.float32)
+        else:
+            image = np.array(image).astype(np.float32)
         label = np.array(label).astype(np.float32)
-        return { 'image':image,'label': label}
+
+        return {'image':image, 'label': label}
 
 
 
@@ -232,9 +274,13 @@ class RandomAdjust2D(object):
     def __call__(self, sample):
         image = sample['image']
         # print(image.dtype)
-        for i in range(image.shape[0]):
-            gamma = random.uniform(self.scale[0],self.scale[1])
-            image[i] = exposure.adjust_gamma(image[i], gamma) 
+        mm = 1 if len(image.shape) > 2 else 0
+        gamma = random.uniform(self.scale[0],self.scale[1])
+        if mm:
+            for i in range(image.shape[0]):
+                image[i] = exposure.adjust_gamma(image[i], gamma) 
+        else:
+            image = exposure.adjust_gamma(image, gamma)
         sample['image'] = image
         # print(image.dtype)
         return sample
@@ -276,10 +322,12 @@ class RandomDistort2D(object):
             image = sample['image']
             label = sample['label']
 
+            mm = 1 if len(image.shape) > 2 else 0
+
             if self.random_state is None:
                 random_state = np.random.RandomState(None)
 
-            if len(image.shape) > 2:
+            if mm:
                 im_merge = np.concatenate(tuple([image[i][...,None] for i in range(image.shape[0])]) + (label[...,None],), axis=2)
             else:
                 im_merge = np.concatenate((image[...,None], label[...,None]), axis=2)
@@ -323,7 +371,10 @@ class RandomDistort2D(object):
             distorted_img = map_coordinates(im_merge, indices, order=1, mode='reflect').reshape(shape)
             '''
             # print(distorted_img.shape)
-            image = np.asarray([distorted_img[...,i] for i in range(image.shape[0])])
+            if mm: 
+                image = np.asarray([distorted_img[...,i] for i in range(image.shape[0])])
+            else:
+                image = distorted_img[...,0]
             # print(ct.shape)
             sample['image'] = image
             sample['label']  = distorted_img[...,-1]

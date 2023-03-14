@@ -134,7 +134,8 @@ class SemanticSeg(object):
             RandomTranslationRotationZoom3D(mode='tr',
                                             num_class=self.num_classes),  #4
             RandomFlip3D(mode='hv'),  #5
-            To_Tensor(num_class=self.num_classes),  #6
+            To_Tensor(num_class=self.num_classes,
+                      input_channel=self.channels),  #6
             Trunc_and_Normalize(scale=self.scale), #7
         ]
 
@@ -491,7 +492,7 @@ class SemanticSeg(object):
         pathlist = glob.glob(os.path.join(test_path, '*.hdf5'))
 
         test_transformer = transforms.Compose([
-            Normalize(),  #2
+            PETandCTNormalize(),  #2
             To_Tensor(num_class=self.num_classes)  #6
         ])
 
@@ -501,9 +502,9 @@ class SemanticSeg(object):
             for step, path in enumerate(pathlist):
                 print(path)
 
-                ct = hdf5_reader(path, 'ct')
-                seg = hdf5_reader(path, 'seg')
-                sample = {'ct': ct, 'seg': seg}
+                image = hdf5_reader(path, 'ct')
+                label = hdf5_reader(path, 'label')
+                sample = {'image': image, 'label': label}
 
                 # Transform
                 if test_transformer is not None:
@@ -548,7 +549,7 @@ class SemanticSeg(object):
                                 if isinstance(predicted_patch, tuple):
                                     predicted_patch = predicted_patch[0]
 
-                            if 'nnloss' in self.net_name:
+                            if isinstance(predicted_patch, list):
                                 predicted_patch = predicted_patch[0]
                             predicted_patch = predicted_patch.float()  #N*C
 

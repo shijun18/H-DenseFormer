@@ -12,18 +12,29 @@ class RandomCrop3D(object):
   def __call__(self, sample):
     image = sample['image']
     label = sample['label']
+
+    mm = 1 if len(image.shape) > 3 else 0
     
     for i in range(len(self.shape)):
-        if image.shape[i+1] > self.shape[i]:
-            b = random.randint(0,image.shape[i+1] - self.shape[i])
+        if image.shape[i+mm] > self.shape[i]:
+            b = random.randint(0,image.shape[i+mm] - self.shape[i])
             if i == 0:
-                image = image[:,b:b+self.shape[i],:,:]
+                if mm:
+                    image = image[:,b:b+self.shape[i],:,:]
+                else:
+                    image = image[b:b+self.shape[i],:,:]
                 label = label[b:b+self.shape[i],:,:]
             if i == 1:
-                image = image[:,:,b:b+self.shape[i],:]
+                if mm:
+                    image = image[:,:,b:b+self.shape[i],:]
+                else:
+                    image = image[:,b:b+self.shape[i],:]
                 label = label[:,b:b+self.shape[i],:]
             if i == 2:
-                image = image[:,:,:,b:b+self.shape[i]]
+                if mm:
+                    image = image[:,:,:,b:b+self.shape[i]]
+                else:
+                    image = image[:,:,b:b+self.shape[i]]
                 label = label[:,:,b:b+self.shape[i]]
 
     new_sample = { 'image': image, 'label':label}
@@ -94,8 +105,11 @@ class RandomTranslationRotationZoom3D(object):
         w[2] = w[2] + img_size[2] / 2
         warp_coords = w[0:3].reshape(3, img_size[0], img_size[1], img_size[2])
 
-        for i in range(image.shape[0]):
-            image[i] = warp(image[i], warp_coords)
+        if len(image.shape) > 3: #cdhw
+            for i in range(image.shape[0]):
+                image[i] = warp(image[i], warp_coords)
+        else:
+            image = warp(image, warp_coords)
         new_label = np.zeros(label.shape, dtype=np.float32)
         for z in range(1,self.num_class):
             temp = warp((label == z).astype(np.float32),warp_coords)
@@ -128,14 +142,20 @@ class RandomFlip3D(object):
 
         if 'h' in self.mode and 'v' in self.mode:
             if np.random.uniform(0, 1) > 0.5:
-                image = image[:,:, ::-1, ...]
+                if len(image.shape) > 3: #chwd
+                    image = image[:,:, ::-1, ...]
+                else:
+                    image = image[:, ::-1, ...]
                 label = label[:, ::-1, ...]
             else:
                 image = image[..., ::-1]
                 label = label[..., ::-1]
 
         elif 'h' in self.mode:
-            image = image[:,:, ::-1, ...]
+            if len(image.shape) > 3: #chwd
+                image = image[:,:, ::-1, ...]
+            else:
+                image = image[:, ::-1, ...]
             label = label[:, ::-1, ...]
 
         elif 'v' in self.mode:
