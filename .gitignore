@@ -5,7 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
-
+eval.py
+*ckpt/
+*result/
+*log/
 # Distribution / packaging
 .Python
 build/
