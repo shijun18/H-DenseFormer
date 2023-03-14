@@ -89,16 +89,24 @@ class CropResize(object):
         mm = 1 if self.channel > 1 else 0
         # crop
         if self.crop != 0:
-            if len(image.shape) > 2:
+            if mm:
                 image = image[..., self.crop:-self.crop, self.crop:-self.crop]
                 label = label[..., self.crop:-self.crop, self.crop:-self.crop]
             else:
-                image = image[self.crop:-self.crop, self.crop:-self.crop]
-                label = label[self.crop:-self.crop, self.crop:-self.crop]
+                if len(image.shape) == 2:
+                    image = image[self.crop:-self.crop, self.crop:-self.crop]
+                    label = label[self.crop:-self.crop, self.crop:-self.crop]
+                else:
+                    image = image[:,self.crop:-self.crop, self.crop:-self.crop]
+                    label = label[:,self.crop:-self.crop, self.crop:-self.crop]
         # resize
         if self.dim is not None and label.shape != self.dim:
-            for i in range(image.shape[0]):
-                image[i] = resize(image[i], self.dim, anti_aliasing=True)
+            if mm:
+                for i in range(image.shape[0]):
+                    image[i] = resize(image[i], self.dim, anti_aliasing=True)
+            else:
+                image = resize(image, self.dim, anti_aliasing=True)
+            
             temp_label = np.zeros(self.dim, dtype=np.float32)
             for z in range(1, self.num_class):
                 roi = resize((label == z).astype(np.float32),
