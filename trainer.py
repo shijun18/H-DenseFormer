@@ -130,7 +130,8 @@ class SemanticSeg(object):
             PETandCTNormalize(),  #2
             CropResize(dim=self.input_shape,
                        num_class=self.num_classes,
-                       crop=self.crop),  #3
+                       crop=self.crop,
+                       channel=self.channels),  #3
             RandomTranslationRotationZoom3D(mode='tr',
                                             num_class=self.num_classes),  #4
             RandomFlip3D(mode='hv'),  #5
@@ -151,7 +152,8 @@ class SemanticSeg(object):
             MRNormalize(),  #1
             CropResize(dim=self.input_shape,
                        num_class=self.num_classes,
-                       crop=self.crop),  #2
+                       crop=self.crop,
+                       channel=self.channels),  #2
             RandomErase2D(scale_flag=False),  #3
             RandomZoom2D(),  #4
             RandomDistort2D(),  #5
