@@ -15,7 +15,7 @@ from scipy.ndimage.filters import gaussian_filter
 from torch.nn import functional as F
 
 from data_utils.transformer_2d import RandomFlip2D, RandomRotate2D, RandomErase2D, RandomAdjust2D, RandomDistort2D, RandomZoom2D, RandomNoise2D
-from data_utils.data_loader import DataGenerator, CropResize, To_Tensor, PETandCTNormalize, MRNormalize
+from data_utils.data_loader import DataGenerator, CropResize, To_Tensor, PETandCTNormalize, MRNormalize,Trunc_and_Normalize
 from data_utils.transformer_3d import RandomTranslationRotationZoom3D, RandomCrop3D, RandomFlip3D
 from torch.cuda.amp import autocast as autocast
 from torch.cuda.amp import GradScaler
@@ -72,7 +72,8 @@ class SemanticSeg(object):
                  transform_2d=None,
                  patch_size=(128, 256, 256),
                  step_size=(64, 128, 128),
-                 transformer_depth=18):
+                 transformer_depth=18,
+                 key_touple=('ct','seg')):
         super(SemanticSeg, self).__init__()
 
         self.net_name = net_name
@@ -112,6 +113,7 @@ class SemanticSeg(object):
         self.patch_size = patch_size
         self.step_size = step_size
         self.transformer_depth = transformer_depth
+        self.key_touple = key_touple
 
         os.environ['CUDA_VISIBLE_DEVICES'] = self.device
 
@@ -132,7 +134,8 @@ class SemanticSeg(object):
             RandomTranslationRotationZoom3D(mode='tr',
                                             num_class=self.num_classes),  #4
             RandomFlip3D(mode='hv'),  #5
-            To_Tensor(num_class=self.num_classes)  #6
+            To_Tensor(num_class=self.num_classes),  #6
+            Trunc_and_Normalize(scale=self.scale), #7
         ]
 
         self.train_transform_3d = [
@@ -156,7 +159,8 @@ class SemanticSeg(object):
             RandomAdjust2D(),  #8
             RandomNoise2D(),  # 9
             To_Tensor(num_class=self.num_classes,
-                      input_channel=self.channels)  # 10
+                      input_channel=self.channels),  # 10
+            Trunc_and_Normalize(scale=self.scale) #11
         ]
 
         self.train_transform_2d = [
@@ -229,7 +233,9 @@ class SemanticSeg(object):
         train_dataset = DataGenerator(train_path,
                                       roi_number=self.roi_number,
                                       num_class=self.num_classes,
-                                      transform=train_transformer)
+                                      transform=train_transformer,
+                                      img_key=self.key_touple[0],
+                                      lab_key=self.key_touple[1])
 
         train_loader = DataLoader(train_dataset,
                                   batch_size=self.batch_size,
@@ -418,7 +424,9 @@ class SemanticSeg(object):
         val_dataset = DataGenerator(val_path,
                                     roi_number=self.roi_number,
                                     num_class=self.num_classes,
-                                    transform=val_transformer)
+                                    transform=val_transformer,
+                                    img_key=self.key_touple[0],
+                                    lab_key=self.key_touple[1])
 
         val_loader = DataLoader(val_dataset,
                                 batch_size=self.batch_size,

@@ -82,11 +82,13 @@ INIT_TRAINER = {
   'T_max':5,
   'topk':10,  
   'use_fp16':False,
-  'transform_3d': [1,2,4,5,6],
-  'transform_2d': [1,6,7,10],  
-  'patch_size': (144,144,144),
-  'step_size': (72,72,72),
-  'transformer_depth': 24 #[8,12,24,36]
+  'scale':None,
+  'transform_3d':[1,2,4,5,6],
+  'transform_2d':[1,6,7,10],  
+  'patch_size':(144,144,144),
+  'step_size':(72,72,72),
+  'transformer_depth':24, #[8,12,24,36]
+  'key_touple':('ct','seg')
  }
 #---------------------------------
 

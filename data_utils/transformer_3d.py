@@ -10,23 +10,23 @@ class RandomCrop3D(object):
     assert len(self.shape) == 3, 'shape error'
 
   def __call__(self, sample):
-    ct = sample['ct']
-    seg = sample['seg']
+    image = sample['image']
+    label = sample['label']
     
     for i in range(len(self.shape)):
-        if ct.shape[i+1] > self.shape[i]:
-            b = random.randint(0,ct.shape[i+1] - self.shape[i])
+        if image.shape[i+1] > self.shape[i]:
+            b = random.randint(0,image.shape[i+1] - self.shape[i])
             if i == 0:
-                ct = ct[:,b:b+self.shape[i],:,:]
-                seg = seg[b:b+self.shape[i],:,:]
+                image = image[:,b:b+self.shape[i],:,:]
+                label = label[b:b+self.shape[i],:,:]
             if i == 1:
-                ct = ct[:,:,b:b+self.shape[i],:]
-                seg = seg[:,b:b+self.shape[i],:]
+                image = image[:,:,b:b+self.shape[i],:]
+                label = label[:,b:b+self.shape[i],:]
             if i == 2:
-                ct = ct[:,:,:,b:b+self.shape[i]]
-                seg = seg[:,:,b:b+self.shape[i]]
+                image = image[:,:,:,b:b+self.shape[i]]
+                label = label[:,:,b:b+self.shape[i]]
 
-    new_sample = { 'ct': ct, 'seg':seg}
+    new_sample = { 'image': image, 'label':label}
 
     return new_sample
 
@@ -46,12 +46,11 @@ class RandomTranslationRotationZoom3D(object):
         self.num_class = num_class
 
     def __call__(self, sample):
-        ct = sample['ct']
-        seg = sample['seg']
+        image = sample['image']
+        label = sample['label']
         # get transform coordinate
-        img_size = seg.shape
-        coords0, coords1, coords2 = np.mgrid[:img_size[0], :img_size[1], :
-                                             img_size[2]]
+        img_size = label.shape
+        coords0, coords1, coords2 = np.mgrid[:img_size[0], :img_size[1], :img_size[2]]
         coords = np.array([
             coords0 - img_size[0] / 2, coords1 - img_size[1] / 2,
             coords2 - img_size[2] / 2
@@ -95,14 +94,14 @@ class RandomTranslationRotationZoom3D(object):
         w[2] = w[2] + img_size[2] / 2
         warp_coords = w[0:3].reshape(3, img_size[0], img_size[1], img_size[2])
 
-        for i in range(ct.shape[0]):
-            ct[i] = warp(ct[i], warp_coords)
-        new_label = np.zeros(seg.shape, dtype=np.float32)
+        for i in range(image.shape[0]):
+            image[i] = warp(image[i], warp_coords)
+        new_label = np.zeros(label.shape, dtype=np.float32)
         for z in range(1,self.num_class):
-            temp = warp((seg == z).astype(np.float32),warp_coords)
+            temp = warp((label == z).astype(np.float32),warp_coords)
             new_label[temp >= 0.5] = z
-        seg = new_label   
-        new_sample = {'ct': ct, 'seg':seg}
+        label = new_label   
+        new_sample = {'image': image, 'label':label}
 
         return new_sample
 
@@ -124,28 +123,28 @@ class RandomFlip3D(object):
     def __call__(self, sample):
         # image: numpy array, (D,H,W)
         # label: integer, 0,1,..
-        ct = sample['ct']
-        seg = sample['seg']
+        image = sample['image']
+        label = sample['label']
 
         if 'h' in self.mode and 'v' in self.mode:
             if np.random.uniform(0, 1) > 0.5:
-                ct = ct[:,:, ::-1, ...]
-                seg = seg[:, ::-1, ...]
+                image = image[:,:, ::-1, ...]
+                label = label[:, ::-1, ...]
             else:
-                ct = ct[..., ::-1]
-                seg = seg[..., ::-1]
+                image = image[..., ::-1]
+                label = label[..., ::-1]
 
         elif 'h' in self.mode:
-            ct = ct[:,:, ::-1, ...]
-            seg = seg[:, ::-1, ...]
+            image = image[:,:, ::-1, ...]
+            label = label[:, ::-1, ...]
 
         elif 'v' in self.mode:
-            ct = ct[..., ::-1]
-            seg = seg[..., ::-1]
+            image = image[..., ::-1]
+            label = label[..., ::-1]
         # avoid the discontinuity of array memory
-        ct = ct.copy()
-        seg = seg.copy()
-        new_sample = {'ct': ct, 'seg':seg}
+        image = image.copy()
+        label = label.copy()
+        new_sample = {'image': image, 'label':label}
 
         return new_sample
 
