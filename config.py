@@ -17,6 +17,20 @@ data_path = {
     'KITS':'/staff/shijun/dataset/Med_Seg/KITS/3d_data'
 }
 
+channel = {
+    'Hecktor21':2,
+    'PI-CAI22':3,
+    'LITS':1,
+    'KITS':1
+}
+
+roi_number = {
+    'Hecktor21':None,
+    'PI-CAI22':None,
+    'LITS':2,
+    'KITS':2
+}
+
 DATASET = 'PI-CAI22'
 MODE = '2d_seg'
 # MODE = '3d_seg'
@@ -32,7 +46,7 @@ PRE_TRAINED = False
 EX_PRE_TRAINED = False
 # True if use resume model
 CKPT_POINT = False
-CHANNEL = 2
+CHANNEL = channel[DATASET]
 
 FOLD_NUM = 5
 # [1-FOLD_NUM]
@@ -41,7 +55,7 @@ GPU_NUM = len(DEVICE.split(','))
 
 # Arguments for trainer initialization
 #--------------------------------- single or multiple
-ROI_NUMBER = None # or 1,2,...
+ROI_NUMBER = roi_number[DATASET] # or 1,2,...
 NUM_CLASSES = 2 
 ROI_NAME = 'All'
 #---------------------------------
@@ -52,13 +66,27 @@ PATH_LIST = glob.glob(os.path.join(PATH_DIR,'*.hdf5'))
 #---------------------------------
 
 #--------------------------------- others
-INPUT_SHAPE = (144,144,144) if '3d' in MODE else (384,384)
+input_shape = {
+    'Hecktor21':(144,144,144),
+    'PI-CAI22':(384,384),
+    'LITS':(448,512,512),
+    'KITS':(256,512,512)
+}
+
+INPUT_SHAPE = input_shape[DATASET]
 BATCH_SIZE = 2 if '3d' in MODE else 24   #48 for resunet else 24(A100) 12(V100) 18(A100 old)
-# BATCH_SIZE = 1
+
 
 CKPT_PATH = './ckpt/{}/{}/fold{}'.format(MODE,VERSION,str(CURRENT_FOLD))
 WEIGHT_PATH = get_weight_path(CKPT_PATH)
 print(WEIGHT_PATH)
+
+keys = {
+    'Hecktor21':('ct','seg'),
+    'PI-CAI22':('ct','seg'),
+    'LITS':('image','label'),
+    'KITS':('image','label')
+}
 
 INIT_TRAINER = {
   'net_name':NET_NAME,
@@ -90,7 +118,7 @@ INIT_TRAINER = {
   'patch_size':(144,144,144),
   'step_size':(72,72,72),
   'transformer_depth':24, #[8,12,24,36]
-  'key_touple':('ct','seg')
+  'key_touple':keys[DATASET]
  }
 #---------------------------------
 
@@ -104,7 +132,7 @@ SETUP_TRAINER = {
   'loss_fun':LOSS_FUN,
   'class_weight':None,
   'lr_scheduler':'poly_lr',
-  'use_ds':True
+  'use_ds':'DenseFormer' in NET_NAME
   }
 #---------------------------------
 

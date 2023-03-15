@@ -69,3 +69,35 @@ class FocalLoss(nn.Module):
             loss = loss.sum()
 
         return loss
+
+
+
+
+class FLLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=2, num_classes=2, reduction="sum"):
+        super(FLLoss, self).__init__()
+        self.eps = 1e-5
+        self.alpha = alpha
+        self.gamma = gamma
+        self.num_classes = num_classes
+        self.reduction = reduction
+
+    def forward(self, inputs, targets, alpha = None):
+        inputs = F.softmax(inputs, dim=1)
+        inputs = inputs.clamp(self.eps, 1 - self.eps)
+
+        ce_loss = - targets * torch.log(inputs) - (1 - targets) * torch.log(1 - inputs)
+
+        p_t = (inputs * targets) + ((1 - inputs) * (1 - targets))
+        loss = ce_loss * ((1 - p_t) ** self.gamma)
+
+        if self.alpha >= 0:
+            alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+            loss = alpha_t * loss
+
+        if self.reduction == "mean":
+            loss = loss.mean()
+        elif self.reduction == "sum":
+            loss = loss.sum()
+
+        return loss
