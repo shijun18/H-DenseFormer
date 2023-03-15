@@ -13,6 +13,8 @@ data_path = {
     # competition
     'Hecktor21':'./dataset/Hecktor21/train_3d_seg',
     'PI-CAI22':'./dataset/PI-CAI22/train_2d_seg',
+    'LITS':'/staff/shijun/dataset/Med_Seg/LITS/3d_data',
+    'KITS':'/staff/shijun/dataset/Med_Seg/KITS/3d_data'
 }
 
 DATASET = 'PI-CAI22'
@@ -82,8 +84,8 @@ INIT_TRAINER = {
   'T_max':5,
   'topk':10,  
   'use_fp16':False,
-  'scale':None,
-  'transform_3d':[1,2,4,5,6],
+  'scale':(-100,200), # for single modality of CT
+  'transform_3d':[1,2,4,5,6], # [2,3,4,5,6]
   'transform_2d':[1,6,7,10],  
   'patch_size':(144,144,144),
   'step_size':(72,72,72),
@@ -94,7 +96,7 @@ INIT_TRAINER = {
 
 __loss__ = ['DiceLoss','TopKLoss','CEPlusDice','FocalLoss','FLLoss','FLPlusDice']
 
-LOSS_FUN = 'FLPlusDice'
+LOSS_FUN = 'FLPlusDice' if NUM_CLASSES == 2 else 'CEPlusDice'
 SETUP_TRAINER = {
   'output_dir':'./ckpt/{}/{}/{}'.format(DATASET,MODE,VERSION),
   'log_dir':'./log/{}/{}/{}'.format(DATASET,MODE,VERSION),

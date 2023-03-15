@@ -27,14 +27,20 @@ class TopKLoss(CrossentropyLoss):
 
     def __init__(self, weight=None, ignore_index=-100, k=10, reduction=None):
         self.k = k
+        self.reduction = reduction
         super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
 
     def forward(self, inp, target):
         res = super(TopKLoss, self).forward(inp, target)
         num_voxels = np.prod(res.shape)
-        res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
-        return res.mean()
+        loss, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
+        
+        if self.reduction == "mean":
+            loss = res.mean()
+        elif self.reduction == "sum":
+            loss = res.sum()
 
+        return loss
 
 class FocalLoss(nn.Module):
     """Focal loss function for binary segmentation."""

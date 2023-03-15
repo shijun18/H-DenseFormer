@@ -9,6 +9,7 @@ eval.py
 *ckpt/
 *result/
 *log/
+make_dataset.py
 # Distribution / packaging
 .Python
 build/
