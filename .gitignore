@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 .vscode/
+rename.py
+converter.py
 # C extensions
 *.so
 eval.py

@@ -122,9 +122,10 @@ INIT_TRAINER = {
  }
 #---------------------------------
 
-__loss__ = ['DiceLoss','TopKLoss','CEPlusDice','FocalLoss','FLLoss','FLPlusDice']
+__loss__ = ['Cross_Entropy','DiceLoss','TopKLoss','CEPlusDice','FocalLoss','FLPlusDice']
 
-LOSS_FUN = 'FLPlusDice' if NUM_CLASSES == 2 else 'CEPlusDice'
+LOSS_FUN = 'FocalLoss' if NUM_CLASSES == 2 else 'CEPlusDice'
+print('loss is %s'%LOSS_FUN)
 SETUP_TRAINER = {
   'output_dir':'./ckpt/{}/{}/{}'.format(DATASET,MODE,VERSION),
   'log_dir':'./log/{}/{}/{}'.format(DATASET,MODE,VERSION),

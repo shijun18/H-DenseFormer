@@ -82,7 +82,7 @@ class FLLoss(nn.Module):
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self, inputs, targets, alpha = None):
+    def forward(self, inputs, targets):
         inputs = F.softmax(inputs, dim=1)
         inputs = inputs.clamp(self.eps, 1 - self.eps)
 

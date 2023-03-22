@@ -138,6 +138,7 @@ class SemanticSeg(object):
             To_Tensor(num_class=self.num_classes,
                       input_channel=self.channels),  #6
             Trunc_and_Normalize(scale=self.scale), #7
+            MRNormalize(),  #1
         ]
 
         self.train_transform_3d = [
@@ -215,7 +216,7 @@ class SemanticSeg(object):
         self.writer = SummaryWriter(log_dir)
         self.global_step = self.start_epoch * math.ceil(
             len(train_path) / self.batch_size)
-
+        
         net = self.net
         lr = self.lr
         loss = self._get_loss(loss_fun, class_weight)
@@ -391,7 +392,8 @@ class SemanticSeg(object):
 
             # measure run dice
             output = torch.argmax(torch.softmax(output, dim=1),
-                                  1).detach().cpu().numpy()  #N*H*W
+                                1).detach().cpu().numpy()  #N*H*W
+
             target = torch.argmax(target, 1).detach().cpu().numpy()
             run_dice.update_matrix(target, output)
 
@@ -752,7 +754,7 @@ class SemanticSeg(object):
 
         elif loss_fun == 'FocalLoss':
             from loss.cross_entropy import FocalLoss
-            loss = FocalLoss()
+            loss = FocalLoss(reduction='sum')
 
         elif loss_fun == 'DiceLoss':
             from loss.dice_loss import DiceLoss
