@@ -103,8 +103,10 @@ class CropResize(object):
         # resize
         if self.dim is not None and label.shape != self.dim:
             if mm:
+                temp_image = np.empty((self.channel,) + self.dim, dtype=np.float32)
                 for i in range(image.shape[0]):
-                    image[i] = resize(image[i], self.dim, anti_aliasing=True)
+                    temp_image[i] = resize(image[i], self.dim, anti_aliasing=True)
+                image = temp_image
             else:
                 image = resize(image, self.dim, anti_aliasing=True)
             

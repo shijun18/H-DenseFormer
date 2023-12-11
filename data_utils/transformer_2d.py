@@ -194,10 +194,14 @@ class RandomZoom2D(object):
 
         mm = 1 if len(image.shape) > 2 else 0
 
+        cts = []
         if mm:
-            image = Image.fromarray(image.transpose((1,2,0)))
+            for i in range(image.shape[0]):
+                cts.append(Image.fromarray(image[i]))
+            # image = Image.fromarray(image.transpose((1,2,0)))
         else:
-            image = Image.fromarray(image)
+            cts = [Image.fromarray(image)]
+            # image = Image.fromarray(image)
         label = Image.fromarray(np.uint8(label))
 
         scale_factor = random.uniform(self.scale[0],self.scale[1])
@@ -225,7 +229,11 @@ class RandomZoom2D(object):
                      min(y_left, h - th)])
             x1 = random.randint(left_shift[1][0], left_shift[1][1])
             y1 = random.randint(left_shift[0][0], left_shift[0][1])
-            image = image.crop((x1, y1, x1 + tw, y1 + th))
+
+            for i in range(len(cts)):
+                cts[i] = cts[i].crop((x1, y1, x1 + tw, y1 + th))
+
+            # image = image.crop((x1, y1, x1 + tw, y1 + th))
             label = label.crop((x1, y1, x1 + tw, y1 + th))
         else:
             pw, ph = tw - w, th - h
@@ -233,26 +241,38 @@ class RandomZoom2D(object):
                 int(random.uniform(0, pw / 2)),
                 int(random.uniform(0, ph / 2))
             ]
-            image = ImageOps.expand(image,
-                                    border=(pad_value[0], pad_value[1],
-                                            tw - w,
-                                            th - h),
-                                    fill=0)
+            for i in range(len(cts)):
+                cts[i] = ImageOps.expand(cts[i],
+                                        border=(pad_value[0], pad_value[1],
+                                                tw - w,
+                                                th - h),
+                                        fill=0)
+            # image = ImageOps.expand(image,
+            #                         border=(pad_value[0], pad_value[1],
+            #                                 tw - w,
+            #                                 th - h),
+            #                         fill=0)
             label = ImageOps.expand(label,
                                    border=(pad_value[0], pad_value[1],
                                            tw - w,
                                            th - h),
                                    fill=0)
         tw, th = h, w
-        image, label = image.resize((tw, th), Image.BILINEAR), label.resize((tw, th), Image.NEAREST)
-
+        for i in range(len(cts)):
+            cts[i] = cts[i].resize((tw, th), Image.BILINEAR)
+        # image = image.resize((tw, th), Image.BILINEAR)
+        label = label.resize((tw, th), Image.NEAREST)
         if mm:
-            image = np.array(image).transpose((2,0,1)).astype(np.float32)
+            cts_out = [np.array(ct).astype(np.float32) for ct in cts]
+            image = np.asarray(cts_out).squeeze()
+            # image = np.array(image).transpose((2,0,1)).astype(np.float32)
         else:
             image = np.array(image).astype(np.float32)
         label = np.array(label).astype(np.float32)
 
-        return {'image':image, 'label': label}
+        sample['image'] = image
+        sample['label'] = label
+        return sample
 
 
 

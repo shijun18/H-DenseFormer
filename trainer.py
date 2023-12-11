@@ -770,19 +770,75 @@ class SemanticSeg(object):
 
         return loss
 
-    def _get_optimizer(self, optimizer, net, lr):
-        if optimizer == 'Adam':
-            optimizer = torch.optim.Adam(net.parameters(),
-                                         lr=lr,
-                                         weight_decay=self.weight_decay)
+    # def _get_optimizer(self, optimizer, net, lr):
+    #     if optimizer == 'Adam':
+    #         optimizer = torch.optim.Adam(net.parameters(),
+    #                                      lr=lr,
+    #                                      weight_decay=self.weight_decay)
 
-        elif optimizer == 'SGD':
-            optimizer = torch.optim.SGD(net.parameters(),
-                                        lr=lr,
-                                        weight_decay=self.weight_decay,
-                                        momentum=self.momentum)
+    #     elif optimizer == 'SGD':
+    #         optimizer = torch.optim.SGD(net.parameters(),
+    #                                     lr=lr,
+    #                                     weight_decay=self.weight_decay,
+    #                                     momentum=self.momentum)
+    #     elif optimizer == 'AdamW':
+    #         optimizer = torch.optim.AdamW(net.parameters(), 
+    #                                       lr=lr,
+    #                                       weight_decay=self.weight_decay, 
+    #                                       amsgrad=False)
+        
+    #     return optimizer
+
+    
+    def _get_optimizer(self, optimizer, net, lr):
+        """
+        Build optimizer, set weight decay of normalization to 0 by default.
+        """
+        def check_keywords_in_name(name, keywords=()):
+            isin = False
+            for keyword in keywords:
+                if keyword in name:
+                    isin = True
+            return isin
+
+        def set_weight_decay(model, skip_list=(), skip_keywords=()):
+            has_decay = []
+            no_decay = []
+
+            for name, param in model.named_parameters():
+                # check what will happen if we do not set no_weight_decay
+                if not param.requires_grad:
+                    continue  # frozen weights
+                if len(param.shape) == 1 or name.endswith(".bias") or (name in skip_list) or \
+                        check_keywords_in_name(name, skip_keywords):
+                    no_decay.append(param)
+                    # print(f"{name} has no weight decay")
+                else:
+                    has_decay.append(param)
+            return [{'params': has_decay},
+                    {'params': no_decay, 'weight_decay': 0.}]
+
+        skip = {}
+        skip_keywords = {}
+        if hasattr(net, 'no_weight_decay'):
+            skip = net.no_weight_decay()
+        if hasattr(net, 'no_weight_decay_keywords'):
+            skip_keywords = net.no_weight_decay_keywords()
+        parameters = set_weight_decay(net, skip, skip_keywords)
+
+        opt_lower = optimizer.lower()
+        optimizer = None
+        if opt_lower == 'sgd':
+            optimizer = torch.optim.SGD(parameters, momentum=self.momentum, nesterov=True,
+                                lr=lr, weight_decay=self.weight_decay)
+        elif opt_lower == 'adamw':
+            optimizer = torch.optim.AdamW(parameters, eps=1e-8, betas=(0.9, 0.999),
+                                    lr=lr, weight_decay=self.weight_decay)
+        elif opt_lower == 'adam':
+            optimizer = torch.optim.Adam(parameters, lr=lr, weight_decay=self.weight_decay)
 
         return optimizer
+
 
     def _get_lr_scheduler(self, lr_scheduler, optimizer):
         if lr_scheduler == 'ReduceLROnPlateau':
