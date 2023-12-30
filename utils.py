@@ -5,6 +5,7 @@ import torch
 import SimpleITK as sitk
 
 
+
 def cal_score(predict,target):
     overlap_measures_filter = sitk.LabelOverlapMeasuresImageFilter()
 
@@ -21,7 +22,16 @@ def cal_score(predict,target):
     try:
         hausdorff_distance_filter.Execute(target, predict)
     except RuntimeError:
-        return Jaccard,Dice,VolumeSimilarity,FalseNegativeError,FalsePositiveError, 144, 144
+        result = {
+            'Jaccard':Jaccard,
+            'Dice':Dice,
+            'VolumeSimilarity':VolumeSimilarity,
+            'FalseNegativeError':FalseNegativeError,
+            'FalsePositiveError':FalsePositiveError,
+            'HausdorffDistance':np.nan,
+            'HausdorffDistance95':np.nan
+        }
+        return result
     HausdorffDistance = hausdorff_distance_filter.GetHausdorffDistance()
     # Symmetric surface distance measures
     segmented_distance_map = sitk.Abs(sitk.SignedMaurerDistanceMap(predict, squaredDistance=False, useImageSpacing=True))
@@ -62,15 +72,23 @@ def cal_score(predict,target):
     # The maximum of the symmetric surface distances is the Hausdorff distance between the surfaces. In 
     # general, it is not equal to the Hausdorff distance between all voxel/pixel points of the two 
     # segmentations, though in our case it is. More on this below.
-    mean_surface_distance = np.mean(all_surface_distances)
-    median_surface_distance = np.median(all_surface_distances)
-    std_surface_distance = np.std(all_surface_distances)
-    max_surface_distance = np.max(all_surface_distances)
-    hd_95 = np.percentile(all_surface_distances,95)
+    # mean_surface_distance = np.mean(all_surface_distances)
+    # median_surface_distance = np.median(all_surface_distances)
+    # std_surface_distance = np.std(all_surface_distances)
+    # max_surface_distance = np.max(all_surface_distances)
+    HausdorffDistance95 = np.percentile(all_surface_distances,95)
     # print(hd_95)
     # print(HausdorffDistance)
-
-    return Jaccard,Dice,VolumeSimilarity,FalseNegativeError,FalsePositiveError, HausdorffDistance, hd_95
+    result = {
+        'Jaccard':Jaccard,
+        'Dice':Dice,
+        'VolumeSimilarity':VolumeSimilarity,
+        'FalseNegativeError':FalseNegativeError,
+        'FalsePositiveError':FalsePositiveError,
+        'HausdorffDistance':HausdorffDistance,
+        'HausdorffDistance95':HausdorffDistance95
+    }
+    return result
 
 def hdf5_reader(data_path, key):
     hdf5_file = h5py.File(data_path, 'r')
