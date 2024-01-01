@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import torch
 import SimpleITK as sitk
-
+import copy
 
 
 def cal_score(predict,target):
@@ -89,6 +89,107 @@ def cal_score(predict,target):
         'HausdorffDistance95':HausdorffDistance95
     }
     return result
+
+
+def multi_dice(y_true,y_pred,num_classes):
+    predict = copy.deepcopy(y_pred)
+    target = copy.deepcopy(y_true)
+    predict = sitk.GetImageFromArray(predict)
+    target = sitk.GetImageFromArray(target)
+    predict = sitk.Cast(predict,sitk.sitkUInt8)
+    target = sitk.Cast(target,sitk.sitkUInt8)
+    dice_list = []
+    for i in range(num_classes):
+        dice = cal_score(predict==i+1,target==i+1)['Dice']
+        dice_list.append(dice)
+    
+    dice_list = [round(case, 4) for case in dice_list]
+    
+    return dice_list, round(np.mean(dice_list),4)
+
+
+def multi_hd(y_true,y_pred,num_classes):
+    predict = copy.deepcopy(y_pred)
+    target = copy.deepcopy(y_true)
+    predict = sitk.GetImageFromArray(predict)
+    target = sitk.GetImageFromArray(target)
+    predict = sitk.Cast(predict,sitk.sitkUInt8)
+    target = sitk.Cast(target,sitk.sitkUInt8)
+    hd_list = []
+    for i in range(num_classes):
+        hd = cal_score(predict==i+1,target==i+1)['HausdorffDistance95']
+        hd_list.append(hd)
+    
+    hd_list = [round(case, 4) for case in hd_list]
+    
+    return hd_list, round(np.mean(hd_list),4)
+
+
+
+def multi_vs(y_true,y_pred,num_classes):
+    predict = copy.deepcopy(y_pred)
+    target = copy.deepcopy(y_true)
+    predict = sitk.GetImageFromArray(predict)
+    target = sitk.GetImageFromArray(target)
+    predict = sitk.Cast(predict,sitk.sitkUInt8)
+    target = sitk.Cast(target,sitk.sitkUInt8)
+    vs_list = []
+    for i in range(num_classes):
+        vs = cal_score(predict==i+1,target==i+1)['VolumeSimilarity']
+        vs_list.append(vs)
+    
+    vs_list = [round(case, 4) for case in vs_list]
+    
+    return vs_list, round(np.mean(vs_list),4)
+
+
+
+def multi_jc(y_true,y_pred,num_classes):
+    predict = copy.deepcopy(y_pred)
+    target = copy.deepcopy(y_true)
+    predict = sitk.GetImageFromArray(predict)
+    target = sitk.GetImageFromArray(target)
+    predict = sitk.Cast(predict,sitk.sitkUInt8)
+    target = sitk.Cast(target,sitk.sitkUInt8)
+    jc_list = []
+    for i in range(num_classes):
+        jc = cal_score(predict==i+1,target==i+1)['Jaccard']
+        jc_list.append(jc)
+    
+    jc_list = [round(case, 4) for case in jc_list]
+    
+    return jc_list, round(np.mean(jc_list),4)
+
+
+
+def cal_asd(predict,target):
+
+    from monai.metrics.surface_distance import SurfaceDistanceMetric
+
+    asd_cls = SurfaceDistanceMetric(symmetric=True)
+    asd = asd_cls._compute_tensor(predict,target)
+    
+    return asd.numpy()[0][0]
+
+
+def multi_asd(y_true, y_pred, num_classes):
+    y_true = torch.tensor(y_true)
+    y_pred = torch.tensor(y_pred)
+    asd_list = []
+    for i in range(num_classes):
+        roi_pred = (y_pred==i+1).permute(1, 2, 0).contiguous().unsqueeze(0).unsqueeze(0) # 11HWD
+        roi_true = (y_true==i+1).permute(1, 2, 0).contiguous().unsqueeze(0).unsqueeze(0)
+
+        # print(roi_pred.size())
+        # print(roi_true.size())
+
+        asd = cal_asd(roi_pred,roi_true)
+        asd_list.append(asd)
+    
+    asd_list = [round(case, 4) for case in asd_list]
+    
+    return asd_list, round(np.mean(asd_list),4)
+
 
 def hdf5_reader(data_path, key):
     hdf5_file = h5py.File(data_path, 'r')
