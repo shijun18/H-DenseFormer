@@ -9,7 +9,7 @@ import numpy as np
 import math
 import glob
 import shutil
-from utils import dfs_remove_weight, hdf5_reader
+from utils import *
 from scipy.ndimage.filters import gaussian_filter
 
 from torch.nn import functional as F
@@ -591,6 +591,75 @@ class SemanticSeg(object):
                     output)
 
                 torch.cuda.empty_cache()
+    def test(self, test_path, save_path, net=None):
+        if net is None:
+            net = self.net  # HDenseNet
+
+        net = net.cuda()
+
+        net.eval()
+
+        # print(len(self.input_shape))
+
+        if len(self.input_shape) > 2:
+            test_transformer = transforms.Compose(self.val_transform_3d)
+        else:
+            test_transformer = transforms.Compose(self.val_transform_2d)
+
+        test_dataset = DataGenerator(test_path,
+                                     roi_number=self.roi_number,
+                                     num_class=self.num_classes,
+                                     transform=test_transformer,
+                                     img_key=self.key_touple[0],
+                                     lab_key=self.key_touple[1])
+
+        test_loader = DataLoader(test_dataset,
+                                 batch_size=1,
+                                 shuffle=False,
+                                 num_workers=0,
+                                 pin_memory=True)
+
+        dice_new_l = []
+
+        with torch.no_grad():
+            for step, sample in enumerate(test_loader):
+                data = sample['image']
+                target = sample['label']
+
+                data = data.cuda()
+                target = target.cuda()
+                with autocast(self.use_fp16):
+                    output = net(data)
+
+                if isinstance(output, list):
+                    output = output[0]
+
+                output = output.float()
+
+                # measure dice and record loss
+                # print('output:',output.detach().size()) #[1,2,112,112,112]
+                # print('target:',target.size())#[1,2,112,112,112]
+
+                output = torch.softmax(output, dim=1)
+                output = torch.argmax(output, 1).detach().cpu().numpy()
+                target = torch.argmax(target, 1).detach().cpu().numpy()
+                target = target.squeeze(0)
+                output = output.squeeze(0)
+
+                # print(target.shape)#[112,112,112]
+                # print(output.shape)#[112,112,112]
+
+                torch.cuda.empty_cache()
+                np.save(
+                    os.path.join(save_path,
+                                 test_path[step].split('\\')[-1].split('.')[0] + '.npy'),
+                    output)
+            # 计算指标
+            dice_m2 = utils.multi_dice(target, output, 1)
+            dice_new_l.append(dice_m2)
+
+            return np.mean(dice_new_l)
+
 
     def cal_steps(self, image_size):
         patch_size = self.patch_size
