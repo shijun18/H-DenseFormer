@@ -54,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument('-m',
                         '--mode',
                         default='train-cross',
-                        choices=["train", 'train-cross',"inf-sw"],
+                        choices=["train", 'train-cross',"inf-sw", "inf"],
                         help='choose the mode',
                         type=str)
     args = parser.parse_args()
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # Inference
     ###############################################
-    elif args.mode == 'inf-sw':
+    elif 'inf' in args.mode:
         test_path = TEST_PATH
         # for current_fold in range(1, FOLD_NUM + 1):
         for current_fold in range(1, 6):
@@ -116,7 +116,10 @@ if __name__ == "__main__":
                 os.makedirs(save_path)
             # print('test len: %d'%len(pathlist))
             start_time = time.time()
-            segnetwork.inference_slidingwindow(test_path,save_path)
+	    if args.mode == 'inf-sw':
+            	segnetwork.inference_slidingwindow(test_path,save_path)
+	    else:
+		segnetwork.test(test_path,save_path)    
             print('run time:%.4f' % (time.time() - start_time))
 
     ###############################################
